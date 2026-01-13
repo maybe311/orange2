@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>오렌지데일리</title>
+    
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        /* 기본 설정 */
+        body {
+            margin: 0; padding: 0;
+            height: 100vh; width: 100vw;
+            overflow: hidden;
+            background-color: #000;
+            font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", Roboto, sans-serif;
+            -webkit-user-select: none; user-select: none;
+            touch-action: pan-y;
+        }
+        #root { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
+        
+        .phone-frame {
+            width: 100%; height: 100%;
+            max-width: 480px;
+            position: relative;
+            overflow: hidden;
+            background-color: #fff;
+        }
+
+        .map-touch-area { touch-action: none !important; }
+
+        /* 애니메이션 */
+        @keyframes appOpen {
+            from { transform: scale(0.95); opacity: 0; border-radius: 40px; }
+            to { transform: scale(1); opacity: 1; border-radius: 0; }
+        }
+        .animate-appOpen { animation: appOpen 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+
+        @keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        @keyframes popIn { 
+            0% { transform: scale(0) translate(-50%, -50%); opacity: 0; } 
+            80% { transform: scale(1.1) translate(-50%, -50%); opacity: 1; }
+            100% { transform: scale(1) translate(-50%, -50%); opacity: 1; }
+        }
+        .animate-popIn { animation: popIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards; }
+
+        @keyframes floatUp { 
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-50px) scale(1.5); opacity: 0; }
+        }
+        .animate-floatUp { animation: floatUp 0.6s ease-out forwards; }
+
+        @keyframes modalSlideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .animate-modalSlideUp { animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+        /* 폭발 파동 애니메이션 */
+        @keyframes rippleExpand {
+            0% { transform: scale(0); opacity: 0.8; }
+            100% { transform: scale(2); opacity: 0; }
+        }
+        .animate-ripple { animation: rippleExpand 0.4s ease-out forwards; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useRef, useMemo, useCallback } = React;
+
+        const Icon = React.memo(({ name, size = 24, color = "currentColor", className = "" }) => {
+            const iconRef = useRef(null);
+            useEffect(() => {
+                if (iconRef.current) lucide.createIcons({ root: iconRef.current, name, attrs: { width: size, height: size, stroke: color, class: className } });
+            }, [name, size, color, className]);
+            return <span ref={iconRef} style={{ display: 'inline-flex' }}><i data-lucide={name}></i></span>;
+        });
+
+        // ----------------------------------------------------------------------
+        // [1] HomeScreen (배경화면 + 위젯 + 앱 아이콘)
+        // ----------------------------------------------------------------------
+        const HomeScreen = ({ onLaunch }) => {
+            const apps = [
+                // 오렌지데일리 앱 추가
+                { name: "오렌지데일리", color: "bg-[#F58220]", icon: "check", isTarget: true },
+                { name: "전화", color: "bg-green-500", icon: "phone" },
+                { name: "메시지", color: "bg-blue-500", icon: "message-circle" },
+                { name: "카카오톡", color: "bg-yellow-400 text-black", icon: "message-square" },
+                { name: "카메라", color: "bg-red-500", icon: "camera" },
+                { name: "갤러리", color: "bg-purple-500", icon: "image" },
+                { name: "설정", color: "bg-gray-500", icon: "settings" },
+                { name: "캘린더", color: "bg-green-600", icon: "calendar" },
+            ];
+
+            return (
+                <div className="w-full h-full bg-cover bg-center relative flex flex-col p-6"
+                     style={{ 
+                         backgroundImage: "url('./1000003399.jpg')", 
+                         backgroundSize: 'cover',
+                         backgroundPosition: 'center',
+                         backgroundColor: '#000'
+                     }}>
+                    
+                    {/* 오렌지데일리 위젯 */}
+                    <div className="mt-24 w-full mb-8">
+                        <div 
+                            onClick={() => onLaunch('widget')}
+                            className="bg-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-2xl active:scale-95 transition-transform duration-200 cursor-pointer flex flex-col h-40 justify-between border border-white/50 relative overflow-hidden group"
+                        >
+                            <div className="flex justify-between items-start z-10">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 bg-[#F58220] rounded-xl flex items-center justify-center shadow-md">
+                                        <Icon name="check" size={20} color="white" strokeWidth={3} />
+                                    </div>
+                                    <span className="font-bold text-gray-800 text-base tracking-tight">오렌지데일리</span>
+                                </div>
+                                <div className="opacity-40"><Icon name="more-horizontal" size={20} /></div>
+                            </div>
+                            <div className="z-10">
+                                <h3 className="font-extrabold text-2xl text-gray-900 leading-tight">오늘도 활기차게<br/>출근 완료?</h3>
+                            </div>
+                            <div className="flex items-center gap-1 text-[#F58220] text-xs font-bold mt-1 z-10">
+                                <Icon name="touchpad-off" size={12} />
+                                <span>터치해서 앱 실행</span>
+                            </div>
+                            <div className="absolute -bottom-4 -right-4 w-24 h-24 bg-orange-100 rounded-full opacity-50 z-0"></div>
+                        </div>
+                    </div>
+
+                    {/* 앱 그리드 */}
+                    <div className="grid grid-cols-4 gap-x-4 gap-y-6 w-full">
+                        {apps.map((app, i) => (
+                            <div 
+                                key={i} 
+                                className="flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
+                                onClick={app.isTarget ? () => onLaunch('app') : null}
+                            >
+                                <div className={`w-14 h-14 ${app.color} rounded-[22px] flex items-center justify-center shadow-lg text-white`}>
+                                    <Icon name={app.icon} size={26} color={app.name === "카카오톡" ? "#3b1e1e" : "white"} />
+                                </div>
+                                <span className="text-white text-[11px] font-medium drop-shadow-md text-center leading-tight">
+                                    {app.name}
+                                </span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
+
+        // ----------------------------------------------------------------------
+        // [2] Sub Views
+        // ----------------------------------------------------------------------
+        
+        const PointDetailView = ({ onClose, points, historyList }) => (
+            <div className="absolute inset-0 bg-gray-50 z-50 flex flex-col animate-modalSlideUp overflow-hidden">
+                <div className="bg-white p-4 flex items-center border-b border-gray-100 shadow-sm sticky top-0 z-10">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><Icon name="chevron-left" size={28} color="#1f2937" /></button>
+                    <span className="ml-2 text-xl font-bold text-gray-800">내 활동 포인트</span>
+                </div>
+                <div className="flex-1 overflow-y-auto pb-20">
+                    <div className="bg-[#F58220] p-8 text-white text-center rounded-b-[40px] shadow-lg mb-6">
+                        <p className="opacity-90 text-lg mb-2">사용 가능한 포인트</p>
+                        <h2 className="text-5xl font-extrabold tracking-tight mb-6">{points.toLocaleString()} P</h2>
+                        <div className="flex gap-3 justify-center">
+                            <button className="bg-white/20 hover:bg-white/30 px-6 py-2 rounded-full text-base font-bold transition-colors">선물하기</button>
+                            <button className="bg-white text-[#F58220] px-6 py-2 rounded-full text-base font-bold shadow-md active:scale-95 transition-transform">사용하기</button>
+                        </div>
+                    </div>
+                    <div className="px-6 space-y-4">
+                        <h3 className="text-xl font-bold text-gray-800 flex items-center gap-2"><Icon name="clock" size={20} color="#9ca3af" />최근 활동 내역</h3>
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-2">
+                            {historyList.map((item, idx) => (
+                                <div key={item.id} className={`flex justify-between items-center p-4 ${idx !== historyList.length - 1 ? 'border-b border-gray-100' : ''}`}>
+                                    <div><p className="font-bold text-lg text-gray-800">{item.title}</p><p className="text-gray-400 text-sm">{item.time}</p></div>
+                                    <span className="text-xl font-bold text-[#F58220]">+{item.amount}</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+
+        const SettingsView = ({ onClose, onLogout }) => (
+            <div className="absolute inset-0 bg-gray-50 z-50 flex flex-col animate-modalSlideUp">
+                <div className="bg-white p-4 flex items-center border-b border-gray-100 shadow-sm">
+                    <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full"><Icon name="chevron-left" size={28} color="#1f2937" /></button>
+                    <span className="ml-2 text-xl font-bold text-gray-800">설정</span>
+                </div>
+                <div className="p-6 space-y-6 overflow-y-auto pb-20">
+                    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+                        <h3 className="text-lg font-bold text-gray-800 mb-4">알림 설정</h3>
+                        <div className="flex justify-between items-center mb-4"><span className="text-gray-600 text-lg">출근 알림 받기</span><div className="w-14 h-8 bg-[#F58220] rounded-full flex items-center justify-end px-1"><div className="w-6 h-6 bg-white rounded-full shadow-sm"></div></div></div>
+                        <div className="flex justify-between items-center"><span className="text-gray-600 text-lg">이벤트 알림</span><div className="w-14 h-8 bg-gray-200 rounded-full flex items-center justify-start px-1"><div className="w-6 h-6 bg-white rounded-full shadow-sm"></div></div></div>
+                    </div>
+                    <button onClick={onLogout} className="w-full py-4 bg-gray-200 rounded-xl text-gray-600 font-bold text-lg">로그아웃</button>
+                    <p className="text-center text-gray-400 text-sm">현재 버전 1.5.0</p>
+                </div>
+            </div>
+        );
+
+        const CalendarView = () => {
+            const days = Array.from({ length: 30 }, (_, i) => i + 1);
+            return (
+                <div className="flex flex-col min-h-full p-6 animate-fadeIn pb-40">
+                    <h2 className="text-3xl font-bold text-gray-800 mb-2">1월 출석부</h2>
+                    <p className="text-gray-500 mb-8 text-lg">꾸준히 나오시면 선물을 드려요! 🎁</p>
+                    <div className="bg-white rounded-[30px] shadow-lg p-5 border-2 border-orange-50">
+                        <div className="grid grid-cols-7 gap-2 text-center text-sm font-bold text-gray-400 mb-4"><span className="text-red-400">일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span className="text-blue-400">토</span></div>
+                        <div className="grid grid-cols-7 gap-3">
+                            {days.map(day => {
+                                const isStamped = [1, 2, 3, 4, 7, 8, 9, 10, 11, 14, 15].includes(day);
+                                const isToday = day === 15;
+                                return (
+                                    <div key={day} className="aspect-square flex items-center justify-center relative">
+                                        {!isStamped && (<span className={`text-base ${isToday ? 'font-bold text-gray-900' : 'text-gray-400'}`}>{day}</span>)}
+                                        {isStamped && (<div className="absolute inset-0 flex items-center justify-center opacity-100 animate-scaleIn"><div className="w-10 h-10 rounded-full border-[3px] border-[#F58220] flex items-center justify-center bg-white"><Icon name="star" size={24} color="#F58220" className="fill-orange-200" /></div></div>)}
+                                        {isToday && !isStamped && (<div className="absolute bottom-1 w-1.5 h-1.5 bg-red-500 rounded-full"></div>)}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                    <div className="mt-8 flex gap-4">
+                        <div className="flex-1 bg-green-50 p-6 rounded-3xl text-center"><p className="text-green-600 font-bold text-base mb-1">이번 달 출석</p><p className="text-3xl font-extrabold text-gray-800">11일</p></div>
+                        <div className="flex-1 bg-orange-50 p-6 rounded-3xl text-center"><p className="text-[#F58220] font-bold text-base mb-1">연속 출석</p><p className="text-3xl font-extrabold text-gray-800">3일째</p></div>
+                    </div>
+                </div>
+            );
+        };
+
+        const RankingView = () => {
+            const queens = [{ rank: 2, name: "이생명", branch: "1팀", count: 18, color: "bg-gray-200 border-gray-300" }, { rank: 1, name: "박한화", branch: "3팀", count: 20, color: "bg-yellow-100 border-yellow-300" }, { rank: 3, name: "최신입", branch: "2팀", count: 17, color: "bg-orange-100 border-orange-200" }];
+            return (
+                <div className="flex flex-col min-h-full p-6 animate-fadeIn pb-40">
+                    <div className="text-center mb-8">
+                        <div className="inline-block bg-yellow-100 text-yellow-700 px-4 py-1.5 rounded-full font-bold text-sm mb-3 border border-yellow-200">👑 1월의 명예의 전당</div>
+                        <h2 className="text-3xl font-extrabold text-gray-800">이달의 랭킹</h2>
+                        <p className="text-gray-500 mt-2 text-lg">가장 성실한 FP님은 누구?</p>
+                    </div>
+                    <div className="flex justify-center items-end gap-3 mb-10 h-64">
+                        {queens.map((queen) => (
+                            <div key={queen.rank} className={`flex flex-col items-center ${queen.rank === 1 ? 'w-1/3' : 'w-1/4'}`}>
+                                <div className="relative">
+                                    {queen.rank === 1 && <div className="absolute -top-10 left-1/2 transform -translate-x-1/2 animate-bounce"><Icon name="crown" size={40} color="#eab308" /></div>}
+                                    <div className={`rounded-full overflow-hidden border-4 shadow-md ${queen.rank === 1 ? 'w-24 h-24 border-yellow-400' : queen.rank === 2 ? 'w-16 h-16 border-gray-400' : 'w-16 h-16 border-orange-300'}`}><div className={`w-full h-full flex items-center justify-center bg-gray-100`}><Icon name="users" size={queen.rank === 1 ? 48 : 32} color="#9ca3af" /></div></div>
+                                    <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-gray-800 text-white text-xs font-bold px-2 py-0.5 rounded-full">{queen.rank}위</div>
+                                </div>
+                                <div className={`mt-4 w-full rounded-t-xl p-3 text-center shadow-sm ${queen.color} ${queen.rank === 1 ? 'h-32' : 'h-24'}`}><p className={`font-bold text-gray-800 ${queen.rank === 1 ? 'text-lg' : 'text-base'} truncate`}>{queen.name}</p><p className="text-xs text-gray-500 mb-1">{queen.branch}</p><p className="font-extrabold text-[#F58220]">{queen.count}회</p></div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="bg-white border border-gray-200 rounded-2xl p-4 flex items-center justify-between shadow-sm">
+                        <div className="flex items-center gap-3"><span className="text-gray-400 font-bold text-lg w-6">4</span><div className="w-10 h-10 bg-[#F58220] rounded-full flex items-center justify-center text-white"><Icon name="smile" size={24} color="white" /></div><div><p className="font-bold text-gray-800">나 (김한화)</p><p className="text-xs text-gray-400">조금만 더 힘내세요!</p></div></div>
+                        <span className="font-bold text-[#F58220]">11회</span>
+                    </div>
+                </div>
+            );
+        };
+
+        const BranchView = () => (
+            <div className="flex flex-col min-h-full p-6 animate-fadeIn space-y-6 pb-40">
+                <h2 className="text-3xl font-bold text-gray-800">우리 지점 광장</h2>
+                <div className="bg-orange-50 rounded-3xl p-6 border border-orange-100 shadow-sm relative overflow-hidden h-auto min-h-[180px]">
+                    <div className="absolute -right-4 -top-4 bg-orange-100 w-24 h-24 rounded-full opacity-50"></div>
+                    <div className="flex flex-col items-start gap-4 relative z-10">
+                        <div className="flex items-center justify-between w-full">
+                            <div className="bg-white p-3 rounded-full text-[#F58220] shadow-sm"><Icon name="megaphone" size={24} /></div>
+                            <div className="flex items-center gap-2"><span className="bg-[#F58220] text-white text-xs px-2 py-0.5 rounded font-bold">지점장 공지</span><span className="text-gray-400 text-xs">2시간 전</span></div>
+                        </div>
+                        <div className="w-full">
+                            <h3 className="font-bold text-xl text-gray-800 leading-snug mb-2">이번 주 금요일,<br/>지점 회식 있습니다! 🍖</h3>
+                            <p className="text-gray-600 text-base leading-relaxed break-keep">모두 5시까지 업무 마감 부탁드립니다. <br/>장소: 지점 앞 한화갈비 <br/>참석 여부는 총무에게 알려주세요!</p>
+                        </div>
+                    </div>
+                </div>
+                <div className="bg-white border-2 border-orange-50 rounded-3xl p-6 shadow-sm">
+                    <h3 className="font-bold text-xl text-gray-800 mb-6 flex items-center gap-2"><Icon name="bar-chart-3" size={24} color="#F58220" />지점 현황판</h3>
+                    <div className="flex gap-4">
+                        <div className="flex-1 text-center"><div className="relative w-24 h-24 mx-auto mb-3 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[6px] border-gray-100"></div><div className="absolute inset-0 rounded-full border-[6px] border-[#F58220] border-t-transparent border-l-transparent rotate-45"></div><span className="text-2xl font-extrabold text-gray-800">85%</span></div><p className="font-bold text-gray-600">오늘 출근율</p><p className="text-xs text-gray-400">어제보다 5% ▲</p></div>
+                        <div className="w-[1px] bg-gray-100"></div>
+                        <div className="flex-1 text-center flex flex-col justify-center"><div className="mb-3"><Icon name="trending-up" size={40} color="#22c55e" className="bg-green-50 p-2 rounded-full" /></div><p className="font-bold text-gray-600">목표 달성</p><p className="text-2xl font-extrabold text-gray-800">92%</p><p className="text-xs text-gray-400">마감까지 3일</p></div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                    <button className="bg-gray-50 p-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-100 text-left">📄 교육 자료실</button>
+                    <button className="bg-gray-50 p-4 rounded-2xl font-bold text-gray-600 hover:bg-gray-100 text-left">📞 비상 연락망</button>
+                </div>
+            </div>
+        );
+
+        // ----------------------------------------------------------------------
+        // [3] OrangeDailyApp Main
+        // ----------------------------------------------------------------------
+        const OrangeDailyApp = ({ launchSource }) => {
+            const [activeTab, setActiveTab] = useState('home'); 
+            const [points, setPoints] = useState(15400);
+            const [isCheckedIn, setIsCheckedIn] = useState(false);
+            const [isRainy, setIsRainy] = useState(false); 
+            const [overlayState, setOverlayState] = useState('hidden'); 
+            const [showConfetti, setShowConfetti] = useState(false);
+            const [showPointDetail, setShowPointDetail] = useState(false);
+            const [showSettings, setShowSettings] = useState(false);
+            const [historyList, setHistoryList] = useState([]);
+
+            const [poppedColleagues, setPoppedColleagues] = useState([]);
+            const [popEffects, setPopEffects] = useState([]);
+            const [dragPath, setDragPath] = useState([]); 
+            
+            const mapRef = useRef(null);
+            const poppedColleaguesRef = useRef([]); 
+            const requestRef = useRef();
+
+            const colleagues = useMemo(() => [
+                { id: 1, name: "박한화", top: 20, left: 15, color: "bg-blue-400", delay: "delay-100", isRecruited: false },
+                { id: 2, name: "이생명", top: 60, left: 70, color: "bg-green-400", delay: "delay-300", isRecruited: false },
+                { id: 3, name: "김팀장", top: 30, left: 80, color: "bg-purple-400", delay: "delay-500", isRecruited: false },
+                { id: 4, name: "최신입", top: 70, left: 20, color: "bg-yellow-400", delay: "delay-700", isRecruited: true },
+            ], []);
+
+            // [핵심] launchSource에 따른 자동 출석 여부 결정
+            useEffect(() => { 
+                if (launchSource === 'widget') {
+                    const timer = setTimeout(() => handleCheckIn(), 600); 
+                    return () => clearTimeout(timer); 
+                }
+                // launchSource가 'app'이면 아무것도 하지 않음 (isCheckedIn = false 상태 유지)
+            }, [launchSource]);
+
+            const handleCheckIn = useCallback(() => {
+                if (isCheckedIn) return;
+                setOverlayState('fading-in');
+                setTimeout(() => {
+                    setOverlayState('visible');
+                    setPoints(p => p + 100);
+                    setIsCheckedIn(true);
+                    setHistoryList(prev => [{ id: Date.now(), title: "자동 출석 체크", time: "방금 전", amount: 100 }, ...prev]);
+                }, 100); 
+                setTimeout(() => { setOverlayState('fading-out'); setShowConfetti(true); }, 1500);
+                setTimeout(() => { setOverlayState('hidden'); setShowConfetti(false); }, 2500); 
+            }, [isCheckedIn]);
+
+            const popColleague = useCallback((id, x, y) => {
+                if (poppedColleaguesRef.current.includes(id)) return;
+                
+                poppedColleaguesRef.current.push(id); 
+                setPoppedColleagues(prev => [...prev, id]); 
+
+                const target = colleagues.find(c => c.id === id);
+                const isSpecial = target?.isRecruited;
+                const pointsToAdd = isSpecial ? 10 : 1;
+
+                setPoints(prev => prev + pointsToAdd);
+                
+                if (window.navigator?.vibrate) window.navigator.vibrate(isSpecial ? 80 : 40);
+                
+                const newEffect = { id: Date.now(), x, y, value: pointsToAdd, isSpecial };
+                setPopEffects(prev => [...prev, newEffect]);
+                setTimeout(() => setPopEffects(prev => prev.filter(e => e.id !== newEffect.id)), 800);
+            }, [colleagues]);
+
+            const handlePointerMove = useCallback((e) => {
+                if (!isCheckedIn) return;
+                let clientX, clientY;
+                if (e.type === 'touchmove') { clientX = e.touches[0].clientX; clientY = e.touches[0].clientY; }
+                else if (e.type === 'mousemove' && e.buttons === 1) { clientX = e.clientX; clientY = e.clientY; }
+                else return;
+
+                if (requestRef.current) return;
+
+                requestRef.current = requestAnimationFrame(() => {
+                    if (!mapRef.current) { requestRef.current = null; return; }
+
+                    const rect = mapRef.current.getBoundingClientRect();
+                    const x = clientX - rect.left;
+                    const y = clientY - rect.top;
+                    
+                    if (x >= 0 && y >= 0 && x <= rect.width && y <= rect.height) {
+                        setDragPath(prev => {
+                            const last = prev[prev.length - 1];
+                            if (last && Math.hypot(x - last.x, y - last.y) < 5) return prev;
+                            const newPath = [...prev, { x, y }];
+                            if (newPath.length > 20) return newPath.slice(newPath.length - 20);
+                            return newPath;
+                        });
+
+                        colleagues.forEach(col => {
+                            if (poppedColleaguesRef.current.includes(col.id)) return;
+                            const colX = (col.left / 100) * rect.width;
+                            const colY = (col.top / 100) * rect.height;
+                            const dist = Math.hypot(x - colX, y - colY);
+                            if (dist < 35) popColleague(col.id, x, y);
+                        });
+                    }
+                    requestRef.current = null;
+                });
+            }, [isCheckedIn, colleagues, popColleague]);
+
+            const handlePointerDown = useCallback((e) => {
+                if (!isCheckedIn) return;
+                setDragPath([]);
+                let clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+                let clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+                if (mapRef.current) {
+                    const rect = mapRef.current.getBoundingClientRect();
+                    const x = clientX - rect.left;
+                    const y = clientY - rect.top;
+                    colleagues.forEach(col => {
+                        if (poppedColleaguesRef.current.includes(col.id)) return;
+                        const colX = (col.left / 100) * rect.width;
+                        const colY = (col.top / 100) * rect.height;
+                        if (Math.hypot(x - colX, y - colY) < 35) popColleague(col.id, x, y);
+                    });
+                }
+            }, [isCheckedIn, colleagues, popColleague]);
+
+            const handlePointerUp = useCallback(() => setDragPath([]), []);
+
+            return (
+                <div className="w-full h-full bg-gray-50 flex flex-col animate-appOpen relative text-gray-800">
+                    {showPointDetail && <PointDetailView onClose={() => setShowPointDetail(false)} points={points} historyList={historyList} />}
+                    {showSettings && <SettingsView onClose={() => setShowSettings(false)} onLogout={() => window.location.reload()} />}
+
+                    <header className="px-6 py-4 flex justify-between items-center bg-white sticky top-0 z-20 shadow-sm">
+                        <span className="font-extrabold text-2xl text-[#F58220]">오렌지데일리</span>
+                        <div className="flex gap-3 items-center">
+                            <button onClick={() => { setIsRainy(!isRainy); }} className={`text-sm px-3 py-1.5 rounded-lg border font-bold transition-colors ${isRainy ? 'bg-blue-100 border-blue-300 text-blue-600' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>{isRainy ? '☔ 비옴' : '☀️ 맑음'}</button>
+                            <Icon name="bell" size={28} color="#9ca3af" />
+                            <button onClick={() => setShowSettings(true)}><Icon name="settings" size={28} color="#9ca3af" /></button>
+                        </div>
+                    </header>
+
+                    <main className="flex-1 overflow-y-auto bg-gray-50 rounded-t-[30px] shadow-inner pb-40">
+                        {activeTab === 'home' && (
+                            <div className="flex flex-col min-h-full animate-fadeIn select-none">
+                                <section className="px-6 pt-8 pb-2">
+                                    <h1 className="text-3xl font-bold text-gray-800 leading-tight">
+                                        오늘도 활기차게! <br />
+                                        <span className="text-[#F58220]">김한화 FP님</span> 안녕하세요 <span className="inline-block animate-bounce">👋</span>
+                                    </h1>
+                                </section>
+
+                                <section className="px-6 py-2 flex flex-col justify-center relative z-0">
+                                    <div 
+                                        ref={mapRef}
+                                        className={`map-touch-area relative w-full aspect-square bg-white rounded-[40px] shadow-xl border-[6px] ${!isCheckedIn && isRainy ? 'border-blue-200' : 'border-orange-200'} overflow-hidden transition-colors duration-700 p-4 cursor-crosshair`}
+                                        onTouchStart={handlePointerDown} onTouchMove={handlePointerMove} onTouchEnd={handlePointerUp}
+                                        onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp}
+                                    >
+                                        {isCheckedIn && (
+                                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-40" style={{overflow: 'visible'}}>
+                                                <polyline 
+                                                    points={dragPath.map(p => `${p.x},${p.y}`).join(' ')} 
+                                                    fill="none" 
+                                                    stroke="#F58220" 
+                                                    strokeWidth="8" 
+                                                    strokeLinecap="round" 
+                                                    strokeLinejoin="round"
+                                                    className="opacity-60"
+                                                />
+                                            </svg>
+                                        )}
+
+                                        <div className={`absolute inset-0 bg-white z-30 flex flex-col items-center justify-center transition-opacity duration-700 pointer-events-none ${overlayState === 'visible' ? 'opacity-100' : 'opacity-0'}`}>
+                                            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mb-6 animate-bounce"><Icon name="check-circle" size={56} color="#22c55e" /></div>
+                                            <h2 className="text-4xl font-extrabold text-gray-800 animate-pulse">출석 완료!</h2>
+                                            <p className="text-gray-500 mt-3 text-lg font-medium">오늘도 화이팅하세요 ✨</p>
+                                        </div>
+
+                                        {!isCheckedIn && overlayState === 'hidden' && (
+                                            <div className="absolute top-4 right-4 animate-pulse pointer-events-none">
+                                                {isRainy ? <Icon name="cloud-rain" size={48} color="#60a5fa" /> : <Icon name="sun" size={48} color="#fb923c" />}
+                                            </div>
+                                        )}
+
+                                        {!isCheckedIn ? (
+                                            <div className={`flex flex-col items-center justify-center h-full gap-6 transition-opacity duration-500 pointer-events-none ${overlayState !== 'hidden' ? 'opacity-0' : 'opacity-100'}`}>
+                                                <div className="text-center space-y-2 pointer-events-none">
+                                                    <span className="inline-block bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-base font-bold">📍 지점 도착 완료!</span>
+                                                    <h3 className="text-2xl font-bold text-gray-800">{isRainy ? "비 오는 날 고생하셨어요!" : "오늘 하루도 힘차게!"}</h3>
+                                                </div>
+                                                {/* pointer-events-auto를 통해 상위 컨테이너의 제한 무시하고 클릭 가능 */}
+                                                <button onClick={(e) => { e.stopPropagation(); handleCheckIn(); }} className={`pointer-events-auto w-52 h-52 rounded-full bg-gradient-to-b from-[#F58220] to-[#e06000] shadow-lg flex flex-col items-center justify-center text-white active:scale-95 transition-transform border-4 border-white ring-4 ring-opacity-30 ring-orange-200 z-50`}>
+                                                    <span className="text-5xl mb-2">👆</span>
+                                                    <span className="text-3xl font-extrabold tracking-wide">출근 꾹!</span>
+                                                    <span className="mt-2 bg-white/20 px-3 py-1 rounded-full text-lg font-bold">+{isRainy ? '200' : '100'}P</span>
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className={`relative w-full h-full bg-green-50/50 rounded-3xl overflow-hidden transition-opacity duration-1000 ${overlayState === 'fading-out' || overlayState === 'hidden' ? 'opacity-100' : 'opacity-0'}`}>
+                                                {poppedColleagues.length < colleagues.length && (
+                                                    <div className="absolute top-3 w-full text-center z-10 animate-pulse pointer-events-none">
+                                                        <span className="bg-white/90 px-3 py-1.5 rounded-full text-sm font-bold text-[#F58220] shadow-sm border border-orange-100">👆 드래그해서 동료들을 만나보세요!</span>
+                                                    </div>
+                                                )}
+                                                
+                                                {popEffects.map(e => (
+                                                    <React.Fragment key={e.id}>
+                                                        <div 
+                                                            className={`absolute z-50 font-extrabold animate-floatUp pointer-events-none ${
+                                                                e.isSpecial 
+                                                                ? 'text-4xl text-yellow-400 drop-shadow-md'
+                                                                : 'text-2xl text-[#F58220]'
+                                                            }`}
+                                                            style={{ left: e.x, top: e.y, transform: 'translate(-50%, -50%)' }}
+                                                        >
+                                                            +{e.value}P
+                                                        </div>
+                                                        <div 
+                                                            className={`absolute rounded-full border-2 animate-ripple pointer-events-none ${
+                                                                e.isSpecial 
+                                                                ? 'border-yellow-400 border-4'
+                                                                : 'border-orange-400'
+                                                            }`}
+                                                            style={{ 
+                                                                left: e.x - (e.isSpecial ? 40 : 20), 
+                                                                top: e.y - (e.isSpecial ? 40 : 20), 
+                                                                width: e.isSpecial ? 80 : 40, 
+                                                                height: e.isSpecial ? 80 : 40 
+                                                            }}
+                                                        />
+                                                    </React.Fragment>
+                                                ))}
+
+                                                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 animate-popIn pointer-events-none">
+                                                    <div className="w-20 h-20 bg-[#F58220] rounded-full border-[5px] border-white shadow-lg flex items-center justify-center text-white text-3xl"><Icon name="smile" size={40} color="white" /></div>
+                                                    <span className="bg-gray-800/80 text-white text-sm px-3 py-1 rounded-full mt-2 font-bold backdrop-blur-sm">나 (출석)</span>
+                                                </div>
+
+                                                {colleagues.map((col) => {
+                                                    if (poppedColleagues.includes(col.id)) return null;
+                                                    return (
+                                                        <div 
+                                                            key={col.id}
+                                                            data-colleague-id={col.id}
+                                                            className={`absolute flex flex-col items-center animate-float ${col.delay} cursor-pointer`}
+                                                            style={{ top: `${col.top}%`, left: `${col.left}%` }}
+                                                        >
+                                                            {col.isRecruited ? (
+                                                                <div className={`w-16 h-16 ${col.color} flex items-center justify-center shadow-lg text-white`} style={{ clipPath: "polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)" }}>
+                                                                    <Icon name="star" size={24} color="white" fill="white" />
+                                                                </div>
+                                                            ) : (
+                                                                <div className={`w-14 h-14 ${col.color} rounded-full border-[3px] border-white shadow-md flex items-center justify-center text-white`}>
+                                                                    <Icon name="users" size={28} color="white" />
+                                                                </div>
+                                                            )}
+                                                            <span className="bg-white/90 text-gray-800 text-xs px-2 py-1 rounded-full mt-1 font-bold shadow-sm whitespace-nowrap pointer-events-none">{col.name}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
+                                    </div>
+                                </section>
+
+                                <section className="px-6 mt-4 space-y-6">
+                                    <div onClick={() => setShowPointDetail(true)} className="bg-orange-50 p-6 rounded-3xl flex justify-between items-center shadow-md border-2 border-orange-100 cursor-pointer hover:bg-orange-100 transition-colors active:scale-98">
+                                        <div>
+                                            <p className="text-base text-gray-500 font-bold mb-1 flex items-center gap-1"><Icon name="wallet" size={16} /> 내 활동 포인트</p>
+                                            <p className="text-4xl font-extrabold text-[#F58220]">{points.toLocaleString()} <span className="text-2xl">P</span></p>
+                                        </div>
+                                        <Icon name="chevron-right" size={32} color="#fdba74" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center gap-2"><Icon name="star" size={24} color="#F58220" className="fill-orange-200" />오늘의 포인트</h3>
+                                        <div className="bg-white rounded-3xl p-2 border border-gray-100 shadow-sm">
+                                            {historyList.filter(item => item.time === "방금 전" || item.id === 1).length > 0 ? (
+                                                historyList.slice(0, 3).map((item, idx) => (
+                                                    <div key={item.id} className={`flex items-center justify-between p-4 ${idx !== 2 ? 'border-b border-gray-50' : ''}`}>
+                                                        <div className="flex items-center gap-3"><div className="w-2 h-2 rounded-full bg-[#F58220]"></div><span className="text-gray-600 font-medium text-lg">{item.title}</span></div>
+                                                        <span className="text-[#F58220] font-bold text-lg">+{item.amount}</span>
+                                                    </div>
+                                                ))
+                                            ) : (<div className="p-6 text-center text-gray-400">아직 오늘의 활동 내역이 없어요.</div>)}
+                                            <button onClick={() => setShowPointDetail(true)} className="w-full py-3 text-center text-gray-400 text-sm font-medium border-t border-gray-100 hover:text-[#F58220]">전체 내역 보기</button>
+                                        </div>
+                                    </div>
+                                </section>
+                            </div>
+                        )}
+                        {activeTab === 'calendar' && <CalendarView />}
+                        {activeTab === 'ranking' && <RankingView />}
+                        {activeTab === 'branch' && <BranchView />}
+                    </main>
+
+                    <nav className="absolute bottom-0 w-full bg-white border-t border-gray-100 px-6 py-4 flex justify-between items-center text-sm font-medium pb-8 shadow-[0_-5px_10px_rgba(0,0,0,0.02)] z-30">
+                        <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'home' ? 'text-[#F58220] scale-110' : 'text-gray-400'}`}><div className={`p-1.5 rounded-xl ${activeTab === 'home' ? 'bg-orange-100' : ''}`}><Icon name="home" size={28} /></div><span>홈</span></button>
+                        <button onClick={() => setActiveTab('calendar')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'calendar' ? 'text-[#F58220] scale-110' : 'text-gray-400'}`}><div className={`p-1.5 rounded-xl ${activeTab === 'calendar' ? 'bg-orange-100' : ''}`}><Icon name="calendar" size={28} /></div><span>출석부</span></button>
+                        <button onClick={() => setActiveTab('ranking')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'ranking' ? 'text-[#F58220] scale-110' : 'text-gray-400'}`}><div className={`p-1.5 rounded-xl ${activeTab === 'ranking' ? 'bg-orange-100' : ''}`}><Icon name="trophy" size={28} /></div><span>랭킹</span></button>
+                        <button onClick={() => setActiveTab('branch')} className={`flex flex-col items-center gap-1 transition-all ${activeTab === 'branch' ? 'text-[#F58220] scale-110' : 'text-gray-400'}`}><div className={`p-1.5 rounded-xl ${activeTab === 'branch' ? 'bg-orange-100' : ''}`}><Icon name="users" size={28} /></div><span>지점</span></button>
+                    </nav>
+
+                    {showConfetti && (<div className="absolute inset-0 pointer-events-none flex items-center justify-center z-50"><div className="text-7xl animate-bounce">🎉</div></div>)}
+                </div>
+            );
+        };
+
+        const Root = () => {
+            const [appState, setAppState] = useState({ launched: false, source: null });
+
+            const handleLaunch = (source) => {
+                setAppState({ launched: true, source });
+            };
+
+            return (
+                <div className="phone-frame">
+                    {!appState.launched ? (
+                        <HomeScreen onLaunch={handleLaunch} />
+                    ) : (
+                        <OrangeDailyApp launchSource={appState.source} />
+                    )}
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<Root />);
+    </script>
+</body>
+</html>

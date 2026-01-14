@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>오렌지데일리</title>
+    <title>오렌지체크</title>
     
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -63,6 +63,13 @@
         }
         .animate-modalSlideUp { animation: modalSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
 
+        /* 파티클 애니메이션 */
+        @keyframes sparkleFade {
+            0% { transform: scale(1); opacity: 1; }
+            100% { transform: scale(0); opacity: 0; }
+        }
+        .animate-sparkle { animation: sparkleFade 0.5s ease-out forwards; }
+
         /* 폭발 파동 애니메이션 */
         @keyframes rippleExpand {
             0% { transform: scale(0); opacity: 0.8; }
@@ -85,13 +92,26 @@
             return <span ref={iconRef} style={{ display: 'inline-flex' }}><i data-lucide={name}></i></span>;
         });
 
+        // [NEW] 오렌지체크 전용 커스텀 아이콘 (오렌지 과일 + 체크 + 잎사귀)
+        const OrangeCheckIcon = ({ size = 14 }) => (
+            <div className={`relative flex items-center justify-center`} style={{ width: size * 4, height: size * 4 }}>
+                {/* 오렌지 몸통 */}
+                <div className="w-full h-full bg-[#F58220] rounded-full shadow-lg flex items-center justify-center relative overflow-hidden">
+                    {/* 오렌지 질감 (약간의 그라데이션 효과) */}
+                    <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
+                    <Icon name="check" size={size * 2} color="white" strokeWidth={4} />
+                </div>
+                {/* 잎사귀 */}
+                <div className="absolute -top-1 right-1 w-[30%] h-[30%] bg-green-500 rounded-tr-full rounded-bl-full transform -rotate-12 shadow-sm border border-green-600/20"></div>
+            </div>
+        );
+
         // ----------------------------------------------------------------------
-        // [1] HomeScreen (배경화면 + 위젯 + 앱 아이콘)
+        // [1] HomeScreen
         // ----------------------------------------------------------------------
         const HomeScreen = ({ onLaunch }) => {
             const apps = [
-                // 오렌지데일리 앱 추가
-                { name: "오렌지데일리", color: "bg-[#F58220]", icon: "check", isTarget: true },
+                { name: "오렌지체크", isCustom: true, isTarget: true },
                 { name: "전화", color: "bg-green-500", icon: "phone" },
                 { name: "메시지", color: "bg-blue-500", icon: "message-circle" },
                 { name: "카카오톡", color: "bg-yellow-400 text-black", icon: "message-square" },
@@ -110,18 +130,18 @@
                          backgroundColor: '#000'
                      }}>
                     
-                    {/* 오렌지데일리 위젯 */}
-                    <div className="mt-24 w-full mb-8">
+                    <div className="mt-24 w-full">
                         <div 
                             onClick={() => onLaunch('widget')}
                             className="bg-white/90 backdrop-blur-xl rounded-[28px] p-6 shadow-2xl active:scale-95 transition-transform duration-200 cursor-pointer flex flex-col h-40 justify-between border border-white/50 relative overflow-hidden group"
                         >
                             <div className="flex justify-between items-start z-10">
                                 <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 bg-[#F58220] rounded-xl flex items-center justify-center shadow-md">
-                                        <Icon name="check" size={20} color="white" strokeWidth={3} />
+                                    {/* 위젯 아이콘 */}
+                                    <div className="transform scale-75 origin-left">
+                                        <OrangeCheckIcon size={12} />
                                     </div>
-                                    <span className="font-bold text-gray-800 text-base tracking-tight">오렌지데일리</span>
+                                    <span className="font-bold text-gray-800 text-base tracking-tight">오렌지체크</span>
                                 </div>
                                 <div className="opacity-40"><Icon name="more-horizontal" size={20} /></div>
                             </div>
@@ -137,16 +157,20 @@
                     </div>
 
                     {/* 앱 그리드 */}
-                    <div className="grid grid-cols-4 gap-x-4 gap-y-6 w-full">
+                    <div className="grid grid-cols-4 gap-x-4 gap-y-6 w-full mt-8">
                         {apps.map((app, i) => (
                             <div 
                                 key={i} 
                                 className="flex flex-col items-center gap-1 cursor-pointer active:scale-90 transition-transform"
                                 onClick={app.isTarget ? () => onLaunch('app') : null}
                             >
-                                <div className={`w-14 h-14 ${app.color} rounded-[22px] flex items-center justify-center shadow-lg text-white`}>
-                                    <Icon name={app.icon} size={26} color={app.name === "카카오톡" ? "#3b1e1e" : "white"} />
-                                </div>
+                                {app.isCustom ? (
+                                    <OrangeCheckIcon size={14} />
+                                ) : (
+                                    <div className={`w-14 h-14 ${app.color} rounded-[22px] flex items-center justify-center shadow-lg text-white`}>
+                                        <Icon name={app.icon} size={26} color={app.name === "카카오톡" ? "#3b1e1e" : "white"} />
+                                    </div>
+                                )}
                                 <span className="text-white text-[11px] font-medium drop-shadow-md text-center leading-tight">
                                     {app.name}
                                 </span>
@@ -204,7 +228,7 @@
                         <div className="flex justify-between items-center"><span className="text-gray-600 text-lg">이벤트 알림</span><div className="w-14 h-8 bg-gray-200 rounded-full flex items-center justify-start px-1"><div className="w-6 h-6 bg-white rounded-full shadow-sm"></div></div></div>
                     </div>
                     <button onClick={onLogout} className="w-full py-4 bg-gray-200 rounded-xl text-gray-600 font-bold text-lg">로그아웃</button>
-                    <p className="text-center text-gray-400 text-sm">현재 버전 1.5.0</p>
+                    <p className="text-center text-gray-400 text-sm">현재 버전 1.4.1 (Orange Check)</p>
                 </div>
             </div>
         );
@@ -300,9 +324,9 @@
         );
 
         // ----------------------------------------------------------------------
-        // [3] OrangeDailyApp Main
+        // [3] OrangeCheckApp Main
         // ----------------------------------------------------------------------
-        const OrangeDailyApp = ({ launchSource }) => {
+        const OrangeCheckApp = ({ launchSource }) => {
             const [activeTab, setActiveTab] = useState('home'); 
             const [points, setPoints] = useState(15400);
             const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -315,6 +339,7 @@
 
             const [poppedColleagues, setPoppedColleagues] = useState([]);
             const [popEffects, setPopEffects] = useState([]);
+            const [sparkles, setSparkles] = useState([]); 
             const [dragPath, setDragPath] = useState([]); 
             
             const mapRef = useRef(null);
@@ -328,13 +353,11 @@
                 { id: 4, name: "최신입", top: 70, left: 20, color: "bg-yellow-400", delay: "delay-700", isRecruited: true },
             ], []);
 
-            // [핵심] launchSource에 따른 자동 출석 여부 결정
             useEffect(() => { 
                 if (launchSource === 'widget') {
                     const timer = setTimeout(() => handleCheckIn(), 600); 
                     return () => clearTimeout(timer); 
                 }
-                // launchSource가 'app'이면 아무것도 하지 않음 (isCheckedIn = false 상태 유지)
             }, [launchSource]);
 
             const handleCheckIn = useCallback(() => {
@@ -368,6 +391,14 @@
                 setPopEffects(prev => [...prev, newEffect]);
                 setTimeout(() => setPopEffects(prev => prev.filter(e => e.id !== newEffect.id)), 800);
             }, [colleagues]);
+
+            const addSparkle = (x, y) => {
+                const id = Date.now() + Math.random();
+                const colors = ['#F58220', '#fb923c', '#fdba74', '#fff'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                setSparkles(prev => [...prev, { id, x, y, color }]);
+                setTimeout(() => setSparkles(prev => prev.filter(s => s.id !== id)), 500);
+            };
 
             const handlePointerMove = useCallback((e) => {
                 if (!isCheckedIn) return;
@@ -432,7 +463,7 @@
                     {showSettings && <SettingsView onClose={() => setShowSettings(false)} onLogout={() => window.location.reload()} />}
 
                     <header className="px-6 py-4 flex justify-between items-center bg-white sticky top-0 z-20 shadow-sm">
-                        <span className="font-extrabold text-2xl text-[#F58220]">오렌지데일리</span>
+                        <span className="font-extrabold text-2xl text-[#F58220]">오렌지체크</span>
                         <div className="flex gap-3 items-center">
                             <button onClick={() => { setIsRainy(!isRainy); }} className={`text-sm px-3 py-1.5 rounded-lg border font-bold transition-colors ${isRainy ? 'bg-blue-100 border-blue-300 text-blue-600' : 'bg-gray-100 border-gray-300 text-gray-500'}`}>{isRainy ? '☔ 비옴' : '☀️ 맑음'}</button>
                             <Icon name="bell" size={28} color="#9ca3af" />
@@ -458,17 +489,26 @@
                                         onMouseDown={handlePointerDown} onMouseMove={handlePointerMove} onMouseUp={handlePointerUp}
                                     >
                                         {isCheckedIn && (
-                                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-40" style={{overflow: 'visible'}}>
-                                                <polyline 
-                                                    points={dragPath.map(p => `${p.x},${p.y}`).join(' ')} 
-                                                    fill="none" 
-                                                    stroke="#F58220" 
-                                                    strokeWidth="8" 
-                                                    strokeLinecap="round" 
-                                                    strokeLinejoin="round"
-                                                    className="opacity-60"
-                                                />
-                                            </svg>
+                                            <>
+                                                <svg className="absolute inset-0 w-full h-full pointer-events-none z-40" style={{overflow: 'visible'}}>
+                                                    <polyline 
+                                                        points={dragPath.map(p => `${p.x},${p.y}`).join(' ')} 
+                                                        fill="none" 
+                                                        stroke="#F58220" 
+                                                        strokeWidth="8" 
+                                                        strokeLinecap="round" 
+                                                        strokeLinejoin="round"
+                                                        className="opacity-60"
+                                                    />
+                                                </svg>
+                                                {sparkles.map(s => (
+                                                    <div 
+                                                        key={s.id}
+                                                        className="absolute w-2 h-2 rounded-full animate-sparkle pointer-events-none z-40"
+                                                        style={{ left: s.x, top: s.y, backgroundColor: s.color }}
+                                                    />
+                                                ))}
+                                            </>
                                         )}
 
                                         <div className={`absolute inset-0 bg-white z-30 flex flex-col items-center justify-center transition-opacity duration-700 pointer-events-none ${overlayState === 'visible' ? 'opacity-100' : 'opacity-0'}`}>
@@ -489,7 +529,6 @@
                                                     <span className="inline-block bg-gray-100 text-gray-600 px-4 py-1.5 rounded-full text-base font-bold">📍 지점 도착 완료!</span>
                                                     <h3 className="text-2xl font-bold text-gray-800">{isRainy ? "비 오는 날 고생하셨어요!" : "오늘 하루도 힘차게!"}</h3>
                                                 </div>
-                                                {/* pointer-events-auto를 통해 상위 컨테이너의 제한 무시하고 클릭 가능 */}
                                                 <button onClick={(e) => { e.stopPropagation(); handleCheckIn(); }} className={`pointer-events-auto w-52 h-52 rounded-full bg-gradient-to-b from-[#F58220] to-[#e06000] shadow-lg flex flex-col items-center justify-center text-white active:scale-95 transition-transform border-4 border-white ring-4 ring-opacity-30 ring-orange-200 z-50`}>
                                                     <span className="text-5xl mb-2">👆</span>
                                                     <span className="text-3xl font-extrabold tracking-wide">출근 꾹!</span>
@@ -618,7 +657,7 @@
                     {!appState.launched ? (
                         <HomeScreen onLaunch={handleLaunch} />
                     ) : (
-                        <OrangeDailyApp launchSource={appState.source} />
+                        <OrangeCheckApp launchSource={appState.source} />
                     )}
                 </div>
             );
@@ -627,7 +666,5 @@
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<Root />);
     </script>
-    
 </body>
-
 </html>

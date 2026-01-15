@@ -76,13 +76,6 @@
             100% { transform: scale(2); opacity: 0; }
         }
         .animate-ripple { animation: rippleExpand 0.4s ease-out forwards; }
-
-        /* 차트 애니메이션 */
-        @keyframes fillChart {
-            from { stroke-dashoffset: 282.7; }
-            to { stroke-dashoffset: 42.4; }
-        }
-        .animate-fillChart { animation: fillChart 1s ease-out forwards; }
     </style>
 </head>
 <body>
@@ -91,30 +84,24 @@
     <script type="text/babel">
         const { useState, useEffect, useRef, useMemo, useCallback } = React;
 
-        // [수정] 아이콘 컴포넌트 개선 (업데이트 시 기존 아이콘 삭제 후 재생성)
         const Icon = React.memo(({ name, size = 24, color = "currentColor", className = "" }) => {
             const iconRef = useRef(null);
             useEffect(() => {
-                if (iconRef.current) {
-                    // 기존 SVG 삭제 및 초기화 (버그 수정 핵심)
-                    iconRef.current.innerHTML = `<i data-lucide="${name}"></i>`;
-                    // 새 아이콘 생성
-                    lucide.createIcons({ 
-                        root: iconRef.current, 
-                        name, 
-                        attrs: { width: size, height: size, stroke: color, class: className } 
-                    });
-                }
+                if (iconRef.current) lucide.createIcons({ root: iconRef.current, name, attrs: { width: size, height: size, stroke: color, class: className } });
             }, [name, size, color, className]);
-            return <span ref={iconRef} style={{ display: 'inline-flex' }}></span>;
+            return <span ref={iconRef} style={{ display: 'inline-flex' }}><i data-lucide={name}></i></span>;
         });
 
+        // [NEW] 오렌지체크 전용 커스텀 아이콘 (오렌지 과일 + 체크 + 잎사귀)
         const OrangeCheckIcon = ({ size = 14 }) => (
             <div className={`relative flex items-center justify-center`} style={{ width: size * 4, height: size * 4 }}>
+                {/* 오렌지 몸통 */}
                 <div className="w-full h-full bg-[#F58220] rounded-full shadow-lg flex items-center justify-center relative overflow-hidden">
+                    {/* 오렌지 질감 (약간의 그라데이션 효과) */}
                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/20 to-transparent opacity-50"></div>
                     <Icon name="check" size={size * 2} color="white" strokeWidth={4} />
                 </div>
+                {/* 잎사귀 */}
                 <div className="absolute -top-1 right-1 w-[30%] h-[30%] bg-green-500 rounded-tr-full rounded-bl-full transform -rotate-12 shadow-sm border border-green-600/20"></div>
             </div>
         );
@@ -150,6 +137,7 @@
                         >
                             <div className="flex justify-between items-start z-10">
                                 <div className="flex items-center gap-3">
+                                    {/* 위젯 아이콘 */}
                                     <div className="transform scale-75 origin-left">
                                         <OrangeCheckIcon size={12} />
                                     </div>
@@ -168,6 +156,7 @@
                         </div>
                     </div>
 
+                    {/* 앱 그리드 */}
                     <div className="grid grid-cols-4 gap-x-4 gap-y-6 w-full mt-8">
                         {apps.map((app, i) => (
                             <div 
@@ -239,7 +228,7 @@
                         <div className="flex justify-between items-center"><span className="text-gray-600 text-lg">이벤트 알림</span><div className="w-14 h-8 bg-gray-200 rounded-full flex items-center justify-start px-1"><div className="w-6 h-6 bg-white rounded-full shadow-sm"></div></div></div>
                     </div>
                     <button onClick={onLogout} className="w-full py-4 bg-gray-200 rounded-xl text-gray-600 font-bold text-lg">로그아웃</button>
-                    <p className="text-center text-gray-400 text-sm">현재 버전 1.5.1</p>
+                    <p className="text-center text-gray-400 text-sm">현재 버전 1.4.1 (Orange Check)</p>
                 </div>
             </div>
         );
@@ -322,17 +311,7 @@
                 <div className="bg-white border-2 border-orange-50 rounded-3xl p-6 shadow-sm">
                     <h3 className="font-bold text-xl text-gray-800 mb-6 flex items-center gap-2"><Icon name="bar-chart-3" size={24} color="#F58220" />지점 현황판</h3>
                     <div className="flex gap-4">
-                        <div className="flex-1 text-center">
-                            <div className="relative w-24 h-24 mx-auto mb-3 flex items-center justify-center">
-                                <svg className="absolute inset-0 w-full h-full transform -rotate-90 animate-fillChart" viewBox="0 0 100 100">
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#f3f4f6" strokeWidth="8" />
-                                    <circle cx="50" cy="50" r="45" fill="none" stroke="#F58220" strokeWidth="8" strokeDasharray="282.7" strokeDashoffset="282.7" strokeLinecap="round" style={{ animation: 'fillChart 1s ease-out forwards' }} />
-                                </svg>
-                                <span className="text-2xl font-extrabold text-gray-800 z-10">85%</span>
-                            </div>
-                            <p className="font-bold text-gray-600">오늘 출근율</p>
-                            <p className="text-xs text-gray-400">어제보다 5% ▲</p>
-                        </div>
+                        <div className="flex-1 text-center"><div className="relative w-24 h-24 mx-auto mb-3 flex items-center justify-center"><div className="absolute inset-0 rounded-full border-[6px] border-gray-100"></div><div className="absolute inset-0 rounded-full border-[6px] border-[#F58220] border-t-transparent border-l-transparent rotate-45"></div><span className="text-2xl font-extrabold text-gray-800">85%</span></div><p className="font-bold text-gray-600">오늘 출근율</p><p className="text-xs text-gray-400">어제보다 5% ▲</p></div>
                         <div className="w-[1px] bg-gray-100"></div>
                         <div className="flex-1 text-center flex flex-col justify-center"><div className="mb-3"><Icon name="trending-up" size={40} color="#22c55e" className="bg-green-50 p-2 rounded-full" /></div><p className="font-bold text-gray-600">목표 달성</p><p className="text-2xl font-extrabold text-gray-800">92%</p><p className="text-xs text-gray-400">마감까지 3일</p></div>
                     </div>
@@ -360,6 +339,7 @@
 
             const [poppedColleagues, setPoppedColleagues] = useState([]);
             const [popEffects, setPopEffects] = useState([]);
+            const [sparkles, setSparkles] = useState([]); 
             const [dragPath, setDragPath] = useState([]); 
             
             const mapRef = useRef(null);
@@ -412,6 +392,14 @@
                 setTimeout(() => setPopEffects(prev => prev.filter(e => e.id !== newEffect.id)), 800);
             }, [colleagues]);
 
+            const addSparkle = (x, y) => {
+                const id = Date.now() + Math.random();
+                const colors = ['#F58220', '#fb923c', '#fdba74', '#fff'];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                setSparkles(prev => [...prev, { id, x, y, color }]);
+                setTimeout(() => setSparkles(prev => prev.filter(s => s.id !== id)), 500);
+            };
+
             const handlePointerMove = useCallback((e) => {
                 if (!isCheckedIn) return;
                 let clientX, clientY;
@@ -442,7 +430,7 @@
                             const colX = (col.left / 100) * rect.width;
                             const colY = (col.top / 100) * rect.height;
                             const dist = Math.hypot(x - colX, y - colY);
-                            if (dist < 55) popColleague(col.id, x, y);
+                            if (dist < 35) popColleague(col.id, x, y);
                         });
                     }
                     requestRef.current = null;
@@ -462,7 +450,7 @@
                         if (poppedColleaguesRef.current.includes(col.id)) return;
                         const colX = (col.left / 100) * rect.width;
                         const colY = (col.top / 100) * rect.height;
-                        if (Math.hypot(x - colX, y - colY) < 55) popColleague(col.id, x, y);
+                        if (Math.hypot(x - colX, y - colY) < 35) popColleague(col.id, x, y);
                     });
                 }
             }, [isCheckedIn, colleagues, popColleague]);
@@ -588,6 +576,7 @@
                                                             className={`absolute flex flex-col items-center animate-float ${col.delay} cursor-pointer`}
                                                             style={{ top: `${col.top}%`, left: `${col.left}%`, transform: 'translate(-50%, -50%)' }}
                                                         >
+                                                            {/* 리크루팅 여부에 따라 모양 변경 */}
                                                             {col.isRecruited ? (
                                                                 <div className="relative flex items-center justify-center">
                                                                     <div 
